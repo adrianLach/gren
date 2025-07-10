@@ -1,4 +1,5 @@
 #include "gren/window.hpp"
+#include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
 #include <stdexcept>
@@ -55,6 +56,14 @@ void Window::pollEvents() {
 
 void Window::makeContextCurrent() {
     glfwMakeContextCurrent(m_window);
+
+    // Initialize GLEW after making context current
+    glewExperimental = GL_TRUE;
+    if (glewInit() != GLEW_OK) {
+        std::cerr << "Failed to initialize GLEW" << std::endl;
+        cleanup();
+        throw std::runtime_error("Failed to initialize GLEW");
+    }
 }
 
 void Window::setShouldClose(bool value) {

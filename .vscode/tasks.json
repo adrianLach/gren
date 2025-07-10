@@ -6,7 +6,7 @@
         {
             "label": "Build and Run",
             "type": "shell",
-            "command": "cmake --build build && ./build/engine",
+            "command": "cmake --build . --config Debug && ./engine",
             "problemMatcher": [
                 {
                     "owner": "cpp",
