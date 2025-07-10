@@ -30,6 +30,9 @@ public:
     int getWidth() const { return m_width; }
     int getHeight() const { return m_height; }
     GLFWwindow* getNativeWindow() const { return m_window; }
+
+    void setSize(int width, int height);
+    void setTitle(const std::string& title);
     
     // Event callbacks
     void setKeyCallback(std::function<void(int, int, int, int)> callback);

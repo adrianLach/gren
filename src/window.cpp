@@ -1,4 +1,5 @@
 #include "gren/window.hpp"
+#include "gren/logger.hpp"
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
@@ -34,7 +35,7 @@ Window::Window(int width, int height, const std::string& title)
     
     // Store this instance in the window user pointer for callbacks
     glfwSetWindowUserPointer(m_window, this);
-    
+
     s_windowCount++;
 }
 
@@ -64,6 +65,16 @@ void Window::makeContextCurrent() {
         cleanup();
         throw std::runtime_error("Failed to initialize GLEW");
     }
+}
+
+void Window::setSize(int width, int height) {
+    m_width = width;
+    m_height = height;
+}
+
+void Window::setTitle(const std::string& title) {
+    m_title = title;
+    glfwSetWindowTitle(m_window, title.c_str());
 }
 
 void Window::setShouldClose(bool value) {
@@ -122,6 +133,7 @@ void Window::resizeCallbackWrapper(GLFWwindow* window, int width, int height) {
     if (windowInstance) {
         windowInstance->m_width = width;
         windowInstance->m_height = height;
+        gren::Logger::log("Window resized to: " + std::to_string(width) + "x" + std::to_string(height));
         // Update OpenGL viewport
         glViewport(0, 0, width, height);
     }
