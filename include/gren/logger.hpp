@@ -1,3 +1,4 @@
+#pragma once
 #include <iostream>
 #include <string>
 #include <chrono>
@@ -10,6 +11,10 @@ namespace gren
         static void log(const std::string &message)
         {
             std::cout << getTimeStamp() << "[LOG] " << message << std::endl;
+        }
+        static void debug(const std::string &message)
+        {
+            std::cout << getTimeStamp() << "[DEBUG] " << message << std::endl;
         }
 
         static void error(const std::string &message)
