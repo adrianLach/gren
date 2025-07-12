@@ -11,6 +11,7 @@ fs_in;
 
 uniform vec4 color;
 uniform vec3 lightPos; // In world space
+uniform sampler2D ourTexture;
 
 void main()
 {
@@ -25,5 +26,5 @@ void main()
     vec3 diffuse = diff * color.rgb;
 
     vec3 result = ambient + diffuse;
-    FragColor = vec4(result, color.a);
+    FragColor = texture(ourTexture, fs_in.TexCoords);
 }

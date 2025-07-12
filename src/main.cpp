@@ -6,6 +6,7 @@
 #include <gren/logger.hpp>
 #include <gren/matrix.hpp>
 #include <gren/mesh.hpp>
+#include <gren/texture.h>
 
 int main()
 {
@@ -20,6 +21,9 @@ int main()
 
     gren::Logger::log("Compiling shaders");
     gren::Shader shader = gren::Shader::loadFromFile("res/shaders/shader.vert", "res/shaders/shader.frag");
+
+    gren::Texture texture;
+    texture.loadFromFile("res/skin.jpg");
 
     window.setKeyCallback([](int key, int scancode, int action, int mods)
                           {
@@ -52,8 +56,8 @@ int main()
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        rotation[1] += 0.01f; // Rotate around Y-axis
-        rotation[2] += 0.01f; // Rotate around Y-axis
+        rotation[1] += 0.001f; // Rotate around Y-axis
+        rotation[2] += 0.001f; // Rotate around Y-axis
 
         gren::Matrix perpective = gren::Matrix::getPerspectiveMatrix(45.0f, (float)window.getWidth() / (float)window.getHeight(), 0.1f, 100.0f);
         gren::Matrix view;
@@ -63,6 +67,9 @@ int main()
         glUniformMatrix4fv(glGetUniformLocation(shader.getProgram(), "view"), 1, GL_FALSE, view.data());
         glUniformMatrix4fv(glGetUniformLocation(shader.getProgram(), "projection"), 1, GL_FALSE, perpective.data());
         glUniformMatrix4fv(glGetUniformLocation(shader.getProgram(), "model"), 1, GL_FALSE, model.data());
+
+        texture.bind();
+        glUniform1i(glGetUniformLocation(shader.getProgram(), "ourTexture"), 0);
 
         glUniform4f(glGetUniformLocation(shader.getProgram(), "color"), 0.5f, 0.5f, 0.5f, 1.0f);
 
