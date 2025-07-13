@@ -20,12 +20,17 @@ Window::Window(int width, int height, const std::string& title)
     if (!initializeGLFW()) {
         throw std::runtime_error("Failed to initialize GLFW");
     }
+
+    glfwDefaultWindowHints();
     
     // Set OpenGL version
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    
+    glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE); // Start maximized
+    // Anti-aliasing hint
+    // glfwWindowHint(GLFW_SAMPLES, 4);
+
     // Create window
     m_window = glfwCreateWindow(width, height, title.c_str(), nullptr, nullptr);
     if (!m_window) {
@@ -65,6 +70,9 @@ void Window::makeContextCurrent() {
         cleanup();
         throw std::runtime_error("Failed to initialize GLEW");
     }
+
+    // Disable VSync to uncap framerate for testing
+    glfwSwapInterval(0);
 }
 
 void Window::setSize(int width, int height) {
@@ -124,6 +132,10 @@ void Window::keyCallbackWrapper(GLFWwindow* window, int key, int scancode, int a
         // Handle key events here or call stored callback
         if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
             glfwSetWindowShouldClose(window, GLFW_TRUE);
+        }
+        if (key == GLFW_KEY_F && action == GLFW_PRESS) {
+            //go fullscreen
+            glfwMaximizeWindow(window);
         }
     }
 }
