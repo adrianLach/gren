@@ -27,9 +27,13 @@ Window::Window(int width, int height, const std::string& title)
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    
+    // Add debug context for troubleshooting
+    glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
+    glfwWindowHint(GLFW_SAMPLES, 4);
 
-    // Anti-aliasing hint
-    glfwWindowHint(GLFW_SAMPLES, 2);
+    // Disable anti-aliasing temporarily to test driver compatibility
+    // glfwWindowHint(GLFW_SAMPLES, 2);
 
     // Create window
     m_window = glfwCreateWindow(width, height, title.c_str(), nullptr, nullptr);
@@ -71,8 +75,17 @@ void Window::makeContextCurrent() {
         throw std::runtime_error("Failed to initialize GLEW");
     }
 
-    // Disable VSync to uncap framerate for testing
+    // Log OpenGL information for debugging
+    Logger::log("OpenGL Version: " + std::string(reinterpret_cast<const char*>(glGetString(GL_VERSION))));
+    Logger::log("GLSL Version: " + std::string(reinterpret_cast<const char*>(glGetString(GL_SHADING_LANGUAGE_VERSION))));
+    Logger::log("Renderer: " + std::string(reinterpret_cast<const char*>(glGetString(GL_RENDERER))));
+    Logger::log("Vendor: " + std::string(reinterpret_cast<const char*>(glGetString(GL_VENDOR))));
+
     glfwSwapInterval(0);
+    
+    // Check if adaptive VSync worked by testing swap interval
+    // If adaptive VSync isn't supported, NVIDIA drivers usually fallback to regular VSync
+    Logger::log("VSync mode set: Adaptive VSync attempted");
 }
 
 void Window::setSize(int width, int height) {

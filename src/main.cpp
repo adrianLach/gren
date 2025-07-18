@@ -7,20 +7,25 @@
 #include <gren/matrix.hpp>
 #include <gren/mesh.hpp>
 #include <gren/texture.h>
+#include <gren/vector.h>
+#include <thread>
+#include <chrono>
+
+using namespace gren;
 
 int main()
 {
 
-    gren::Logger::log("Starting OpenGL Triangle Example");
-    gren::Window window(800, 600, "OpenGL Triangle");
+    Logger::log("Starting OpenGL Triangle Example");
+    Window window(800, 600, "OpenGL Triangle");
     window.makeContextCurrent();
 
-    gren::Mesh mesh = gren::loadFromFileOBJ("res/monkey.obj");
+    Mesh mesh = loadFromFileOBJ("res/ball.obj");
 
-    gren::Logger::log("OpenGL resources initialized");
+    Logger::log("OpenGL resources initialized");
 
-    gren::Logger::log("Compiling shaders");
-    gren::Shader shader = gren::Shader::loadFromFile("res/shaders/shader.vert", "res/shaders/shader.frag");
+    Logger::log("Compiling shaders");
+    Shader shader = Shader::loadFromFile("res/shaders/shader.vert", "res/shaders/shader.frag");
 
     // Get uniform locations once and store them
     GLint viewLoc = glGetUniformLocation(shader.getProgram(), "view");
@@ -31,16 +36,19 @@ int main()
     GLint colorLoc = glGetUniformLocation(shader.getProgram(), "color");
     GLint lightPosLoc = glGetUniformLocation(shader.getProgram(), "lightPos");
 
-    gren::Texture texture;
-    texture.loadFromFile("res/rocky/diffuse.png");
+    Texture texture;
+    texture.loadFromFile("res/grayrocks/diffuse.png");
 
-    gren::Texture normal;
-    normal.loadFromFile("res/rocky/normal.png");
+    Texture normal;
+    normal.loadFromFile("res/grayrocks/normal.png");
+
+    Texture height;
+    height.loadFromFile("res/grayrocks/height.png");
 
     window.setKeyCallback([](int key, int scancode, int action, int mods)
                           {
         if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
-            gren::Logger::log("Escape key pressed, closing window");
+            Logger::log("Escape key pressed, closing window");
             glfwSetWindowShouldClose(glfwGetCurrentContext(), true);
         } });
 
@@ -49,13 +57,28 @@ int main()
                                 if (width > 0 && height > 0) {
                                    glViewport(0, 0, width, height);
                                    window.setSize(width, height);
-                                   gren::Logger::log("Window resized to: " + std::to_string(width) + "x" + std::to_string(height));
+                                   Logger::log("Window resized to: " + std::to_string(width) + "x" + std::to_string(height));
                                 }
                              });
 
-    float position[] = {0.0f, 0.0f, -3.0f};
-    float rotation[] = {0.0f, 0.0f, 0.0f};
-    float scale[] = {0.9f, 0.9f, 0.9f};
+    auto toRadians = [](float degrees) -> float {
+        return degrees * (3.14159265358979323846f / 180.0f);
+    };
+
+    Vector position(0.0f, 0.0f, 0.0f);
+    Vector rotation(0.0f, 0.0f, 0.0f);
+    Vector scale(1.0f, 1.0f, 1.0f);
+
+    struct Camera
+    {
+        Vector position;
+        Vector rotation;
+        Camera() : position(0.0f, 0.0f, 0.0f), rotation(0.0f, 0.0f, 0.0f) {}
+    };
+
+    Camera camera;
+
+    camera.position = Vector(0.0f, 0.0f, 3.0f);
 
     glViewport(0, 0, window.getWidth(), window.getHeight());
     glEnable(GL_DEPTH_TEST);
@@ -65,6 +88,11 @@ int main()
     glCullFace(GL_BACK);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
+    // Frame limiting configuration
+    const bool USE_FRAME_LIMITER = true; // Set to true to enable manual frame limiting
+    const double TARGET_FPS = 144.0; // Target framerate when frame limiter is enabled
+    const double TARGET_FRAME_TIME = 1.0 / TARGET_FPS;
+
     double lastTime = glfwGetTime();
     double deltaTime = 0.0;
     int frames = 0;
@@ -73,11 +101,7 @@ int main()
     double fpsUpdateInterval = 1.0; // Update FPS every second
     double lastFpsUpdate = lastTime;
 
-    auto toRadians = [](float degrees) -> float {
-        return degrees * (3.14159265358979323846f / 180.0f);
-    };
-
-    gren::Logger::log("Entering main loop");
+    Logger::log("Entering main loop");
     while (!window.shouldClose())
     {
         currentTime = glfwGetTime();
@@ -90,7 +114,7 @@ int main()
             fps = frames / (currentTime - lastFpsUpdate);
             lastFpsUpdate = currentTime;
             frames = 0;
-            gren::Logger::log("FPS: " + std::to_string(fps));
+            Logger::log("FPS: " + std::to_string(fps));
         }
 
         window.setTitle("OpenGL Triangle - FPS: " + std::to_string(fps) + " - Delta Time: " + std::to_string(deltaTime));
@@ -98,22 +122,25 @@ int main()
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        rotation[1] += toRadians(5.0f) * (float)deltaTime; // Rotate 50 degrees per second around Y-axis
+        rotation.y = toRadians(20.0f * sin(currentTime / 2.0f) - 20.0f);
+        rotation.x = toRadians(20.0f * cos(currentTime / 2.0f));
 
-        gren::Matrix perpective = gren::Matrix::getPerspectiveMatrix(45.0f, (float)window.getWidth() / (float)window.getHeight(), 0.1f, 100.0f);
-        // gren::Matrix::getOrthographicMatrix(
+        Matrix perpective = Matrix::getPerspectiveMatrix(45.0f, (float)window.getWidth() / (float)window.getHeight(), 0.1f, 100.0f);
+        // Matrix::getOrthographicMatrix(
         //     -1.0f, 1.0f, 
         //     -1.0f * (float)window.getHeight() / (float)window.getWidth(), 
         //     1.0f * (float)window.getHeight() / (float)window.getWidth(), 
         //     0.1f, 100.0f
         // );
-        gren::Matrix view;
-        gren::Matrix model = gren::Matrix::getModelMatrix(position, rotation, scale);
+        Matrix view = Matrix::getModelMatrix(-camera.position, -camera.rotation, Vector(1.0f, 1.0f, 1.0f));
+        Matrix model = Matrix::getModelMatrix(position, rotation, scale);
 
         glUseProgram(shader.getProgram());
-        glUniformMatrix4fv(viewLoc, 1, GL_FALSE, view.data());
-        glUniformMatrix4fv(projLoc, 1, GL_FALSE, perpective.data());
-        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, model.data());
+        glUniformMatrix4fv(viewLoc, 1, GL_FALSE, view);
+        glUniformMatrix4fv(projLoc, 1, GL_FALSE, perpective);
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, model);
+
+        glUniform3fv(glGetUniformLocation(shader.getProgram(), "viewPos"), 1, -camera.position);
 
         glActiveTexture(GL_TEXTURE0);
         texture.bind();
@@ -123,20 +150,41 @@ int main()
         normal.bind();
         glUniform1i(normalLoc, 1);
 
+        glActiveTexture(GL_TEXTURE2);
+        height.bind();
+        glUniform1i(glGetUniformLocation(shader.getProgram(), "heightMap"), 2);
+
         glUniform4f(colorLoc, 0.5f, 0.5f, 0.5f, 1.0f);
         //light Pos
-        glUniform3f(lightPosLoc, -3.0f, -3.0f, 3.0f);
+        glUniform3f(lightPosLoc, 30.0f, 30.0f, 30.0f);
 
         glBindVertexArray(mesh.VAO);
         glDrawElements(GL_TRIANGLES, mesh.size, GL_UNSIGNED_INT, 0);
 
         window.swapBuffers();
         window.pollEvents();
+
+        // Manual frame limiting (if enabled)
+        if (USE_FRAME_LIMITER) {
+            double frameEndTime = glfwGetTime();
+            double frameTime = frameEndTime - currentTime;
+            
+            if (frameTime < TARGET_FRAME_TIME) {
+                double sleepTime = TARGET_FRAME_TIME - frameTime;
+                // Use busy wait for more precise timing (alternative: std::this_thread::sleep_for)
+                double targetTime = frameEndTime + sleepTime;
+                while (glfwGetTime() < targetTime) {
+                    // Busy wait - more CPU intensive but more precise
+                    // For less CPU usage, replace with:
+                    // std::this_thread::sleep_for(std::chrono::duration<double>(sleepTime * 0.9));
+                }
+            }
+        }
     }
 
-    gren::Logger::log("Exiting main loop");
+    Logger::log("Exiting main loop");
 
-    gren::Logger::log("Cleaned up OpenGL resources");
+    Logger::log("Cleaned up OpenGL resources");
 
     return 0;
 }

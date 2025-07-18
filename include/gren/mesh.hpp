@@ -3,6 +3,7 @@
 #include <fstream>
 #include <sstream>
 #include <vector>
+#include <array>
 #include "logger.hpp"
 
 namespace gren
@@ -51,7 +52,6 @@ namespace gren
         std::string line;
         while (std::getline(file, line))
         {
-            gren::Logger::debug("Processing line: " + line);
             if (line.empty() || line[0] == '#')
                 continue; // skip empty lines and comments
             std::istringstream iss(line);
@@ -82,7 +82,6 @@ namespace gren
             }
             else if (prefix == "f")
             {
-                gren::Logger::debug("Processing face: " + line);
                 auto processVertex = [&](unsigned int v, unsigned int vt, unsigned int vn)
                 {
                     // OBJ indices are 1-based, convert to 0-based
@@ -120,22 +119,67 @@ namespace gren
                     indices.push_back(indices.size());
                 };
 
-                unsigned int v1, v2, v3, v4, vt1, vt2, vt3, vt4, vn1, vn2, vn3, vn4;
-                char slash; // to consume the slashes in the face definitions
-                iss >> v1 >> slash >> vt1 >> slash >> vn1;
-                iss >> v2 >> slash >> vt2 >> slash >> vn2;
-                iss >> v3 >> slash >> vt3 >> slash >> vn3;
-
-                processVertex(v1, vt1, vn1);
-                processVertex(v2, vt2, vn2);
-                processVertex(v3, vt3, vn3);
-
-                // Handle quads by triangulating
-                if (iss >> v4 >> slash >> vt4 >> slash >> vn4)
+                // Parse face vertices - handle different OBJ formats: v, v/vt, v/vt/vn, v//vn
+                std::vector<std::array<unsigned int, 3>> faceVertices; // [vertex_idx, texcoord_idx, normal_idx]
+                
+                std::string vertexStr;
+                while (iss >> vertexStr)
                 {
-                    processVertex(v1, vt1, vn1);
-                    processVertex(v3, vt3, vn3);
-                    processVertex(v4, vt4, vn4);
+                    std::array<unsigned int, 3> vertex = {0, 0, 0}; // default to 0 for missing components
+                    
+                    size_t firstSlash = vertexStr.find('/');
+                    if (firstSlash == std::string::npos)
+                    {
+                        // Format: v
+                        vertex[0] = std::stoi(vertexStr);
+                    }
+                    else
+                    {
+                        // Extract vertex index
+                        vertex[0] = std::stoi(vertexStr.substr(0, firstSlash));
+                        
+                        size_t secondSlash = vertexStr.find('/', firstSlash + 1);
+                        if (secondSlash == std::string::npos)
+                        {
+                            // Format: v/vt
+                            if (firstSlash + 1 < vertexStr.length())
+                                vertex[1] = std::stoi(vertexStr.substr(firstSlash + 1));
+                        }
+                        else
+                        {
+                            // Format: v/vt/vn or v//vn
+                            if (secondSlash > firstSlash + 1)
+                            {
+                                // has texture coordinate
+                                vertex[1] = std::stoi(vertexStr.substr(firstSlash + 1, secondSlash - firstSlash - 1));
+                            }
+                            if (secondSlash + 1 < vertexStr.length())
+                            {
+                                // has normal
+                                vertex[2] = std::stoi(vertexStr.substr(secondSlash + 1));
+                            }
+                        }
+                    }
+                    faceVertices.push_back(vertex);
+                }
+
+                if (faceVertices.size() < 3)
+                {
+                    Logger::error("Face has less than 3 vertices, skipping");
+                    continue;
+                }
+
+                // Process triangle
+                processVertex(faceVertices[0][0], faceVertices[0][1], faceVertices[0][2]);
+                processVertex(faceVertices[1][0], faceVertices[1][1], faceVertices[1][2]);
+                processVertex(faceVertices[2][0], faceVertices[2][1], faceVertices[2][2]);
+
+                // Handle quads by triangulating (create second triangle)
+                if (faceVertices.size() == 4)
+                {
+                    processVertex(faceVertices[0][0], faceVertices[0][1], faceVertices[0][2]);
+                    processVertex(faceVertices[2][0], faceVertices[2][1], faceVertices[2][2]);
+                    processVertex(faceVertices[3][0], faceVertices[3][1], faceVertices[3][2]);
                 }
             }
         }
@@ -197,6 +241,10 @@ namespace gren
             v.bitangent[0] = v.normal[1] * v.tangent[2] - v.normal[2] * v.tangent[1];
             v.bitangent[1] = v.normal[2] * v.tangent[0] - v.normal[0] * v.tangent[2];
             v.bitangent[2] = v.normal[0] * v.tangent[1] - v.normal[1] * v.tangent[0];
+
+            Logger::debug("Vertex " + std::to_string(i) +
+                " Tangent: [" + std::to_string(v.tangent[0]) + ", " + std::to_string(v.tangent[1]) + ", " + std::to_string(v.tangent[2]) + "]" +
+                " Bitangent: [" + std::to_string(v.bitangent[0]) + ", " + std::to_string(v.bitangent[1]) + ", " + std::to_string(v.bitangent[2]) + "]");
         }
 
         mesh.size = indices.size();
@@ -206,7 +254,6 @@ namespace gren
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.EBO);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
-
 
         constexpr GLsizei stride = sizeof(Vertex);
         // Position
