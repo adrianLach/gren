@@ -20,11 +20,11 @@ vec2 ParallaxMapping(vec2 texCoords, vec3 viewDir)
 { 
 
     // scale factor for height map
-    float heightScale = 0.5; // adjust this value to control the parallax
+    float heightScale = 0.125; // adjust this value to control the parallax
 
     // number of depth layers
     const float minLayers = 8;
-    const float maxLayers = 256;
+    const float maxLayers = 128;
     float numLayers = mix(maxLayers, minLayers, max(dot(vec3(0.0, 0.0, 1.0), viewDir), 0.0));
 
     // calculate the size of each layer

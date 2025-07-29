@@ -1,11 +1,11 @@
-#include "gren/window.hpp"
-#include "gren/logger.hpp"
+#include "grn/window.h"
+#include "grn/logger.h"
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
 #include <stdexcept>
 
-namespace gren {
+namespace grn {
 
 // Static member to track GLFW initialization
 static bool s_glfwInitialized = false;
@@ -24,19 +24,16 @@ Window::Window(int width, int height, const std::string& title)
     glfwDefaultWindowHints();
     
     // Set OpenGL version
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     
     // Add debug context for troubleshooting
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
     glfwWindowHint(GLFW_SAMPLES, 4);
 
-    // Disable anti-aliasing temporarily to test driver compatibility
-    // glfwWindowHint(GLFW_SAMPLES, 2);
-
     // Create window
-    m_window = glfwCreateWindow(width, height, title.c_str(), nullptr, nullptr);
+    m_window = glfwCreateWindow(width, height, title.c_str(), glfwGetPrimaryMonitor(), NULL);
     if (!m_window) {
         cleanup();
         throw std::runtime_error("Failed to create GLFW window");
@@ -65,8 +62,8 @@ void Window::pollEvents() {
 }
 
 void Window::makeContextCurrent() {
-    glfwMakeContextCurrent(m_window);
 
+    glfwMakeContextCurrent(m_window);
     // Initialize GLEW after making context current
     glewExperimental = GL_TRUE;
     if (glewInit() != GLEW_OK) {
@@ -81,7 +78,7 @@ void Window::makeContextCurrent() {
     Logger::log("Renderer: " + std::string(reinterpret_cast<const char*>(glGetString(GL_RENDERER))));
     Logger::log("Vendor: " + std::string(reinterpret_cast<const char*>(glGetString(GL_VENDOR))));
 
-    glfwSwapInterval(0);
+    glfwSwapInterval(GLFW_TRUE);
     
     // Check if adaptive VSync worked by testing swap interval
     // If adaptive VSync isn't supported, NVIDIA drivers usually fallback to regular VSync
@@ -158,10 +155,10 @@ void Window::resizeCallbackWrapper(GLFWwindow* window, int width, int height) {
     if (windowInstance) {
         windowInstance->m_width = width;
         windowInstance->m_height = height;
-        gren::Logger::log("Window resized to: " + std::to_string(width) + "x" + std::to_string(height));
+        grn::Logger::log("Window resized to: " + std::to_string(width) + "x" + std::to_string(height));
         // Update OpenGL viewport
         glViewport(0, 0, width, height);
     }
 }
 
-} // namespace gren
+} // namespace grn

@@ -1,9 +1,9 @@
 #pragma once
 
 #include <cmath>
-#include <gren/vector.h>
+#include <grn/vector.h>
 
-namespace gren
+namespace grn
 {
 
     struct Matrix

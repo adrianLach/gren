@@ -1,0 +1,30 @@
+{
+    "files.associations": {
+        "vector": "cpp",
+        "string": "cpp"
+    },
+    "files.exclude": {
+        "**/.git": true,
+        "**/.svn": true,
+        "**/.hg": true,
+        "**/.DS_Store": true,
+        "**/Thumbs.db": true,
+    },
+    "search.exclude": {
+        "**/node_modules": true,
+        "**/bower_components": true,
+        "**/*.code-search": true,
+        "**/.vscode": true,
+        "**/.git": true,
+        "CMakeLists.txt": true,
+        "**/CMakeCache.txt": true,
+        "**/CMakeFiles": true,
+        "**/build": true,
+        "**/dist": true,
+        "**/out": true,
+        "**/coverage": true,
+        "**/logs": true,
+        "cmake_install.cmake": true,
+        "**/Makefile": true,
+    }
+}

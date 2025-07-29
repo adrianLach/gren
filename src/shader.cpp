@@ -1,8 +1,8 @@
 #include <iostream>
 #include <fstream>
-#include "gren/shader.hpp"
+#include "grn/shader.h"
 
-namespace gren
+namespace grn
 {
 
     Shader::Shader(const char *vertexShaderSource, const char *fragmentShaderSource)

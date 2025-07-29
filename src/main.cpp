@@ -1,23 +1,23 @@
 #include <iostream>
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
-#include <gren/window.hpp>
-#include <gren/shader.hpp>
-#include <gren/logger.hpp>
-#include <gren/matrix.hpp>
-#include <gren/mesh.hpp>
-#include <gren/texture.h>
-#include <gren/vector.h>
+#include <grn/window.h>
+#include <grn/shader.h>
+#include <grn/logger.h>
+#include <grn/matrix.h>
+#include <grn/mesh.h>
+#include <grn/texture.h>
+#include <grn/vector.h>
 #include <thread>
 #include <chrono>
 
-using namespace gren;
+using namespace grn;
 
 int main()
 {
 
     Logger::log("Starting OpenGL Triangle Example");
-    Window window(800, 600, "OpenGL Triangle");
+    Window window(2560, 1600, "OpenGL Triangle");
     window.makeContextCurrent();
 
     Mesh mesh = loadFromFileOBJ("res/ball.obj");
@@ -37,13 +37,13 @@ int main()
     GLint lightPosLoc = glGetUniformLocation(shader.getProgram(), "lightPos");
 
     Texture texture;
-    texture.loadFromFile("res/grayrocks/diffuse.png");
+    texture.loadFromFile("res/rock/diffuse.png");
 
     Texture normal;
-    normal.loadFromFile("res/grayrocks/normal.png");
+    normal.loadFromFile("res/rock/normal.png");
 
     Texture height;
-    height.loadFromFile("res/grayrocks/height.png");
+    height.loadFromFile("res/rock/height.png");
 
     window.setKeyCallback([](int key, int scancode, int action, int mods)
                           {
@@ -78,7 +78,7 @@ int main()
 
     Camera camera;
 
-    camera.position = Vector(0.0f, 0.0f, 3.0f);
+    camera.position = Vector(0.0f, 0.0f, 1.5f);
 
     glViewport(0, 0, window.getWidth(), window.getHeight());
     glEnable(GL_DEPTH_TEST);
@@ -89,7 +89,7 @@ int main()
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
     // Frame limiting configuration
-    const bool USE_FRAME_LIMITER = true; // Set to true to enable manual frame limiting
+    const bool USE_FRAME_LIMITER = false; // Set to true to enable manual frame limiting
     const double TARGET_FPS = 144.0; // Target framerate when frame limiter is enabled
     const double TARGET_FRAME_TIME = 1.0 / TARGET_FPS;
 
@@ -117,7 +117,7 @@ int main()
             Logger::log("FPS: " + std::to_string(fps));
         }
 
-        window.setTitle("OpenGL Triangle - FPS: " + std::to_string(fps) + " - Delta Time: " + std::to_string(deltaTime));
+        window.setTitle("OpenGL Triangle - FPS: " + std::to_string(fps) + " - Calulated: " + std::to_string(1.0 / deltaTime) + " - Delta Time: " + std::to_string(deltaTime));
 
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -125,7 +125,8 @@ int main()
         rotation.y = toRadians(20.0f * sin(currentTime / 2.0f) - 20.0f);
         rotation.x = toRadians(20.0f * cos(currentTime / 2.0f));
 
-        Matrix perpective = Matrix::getPerspectiveMatrix(45.0f, (float)window.getWidth() / (float)window.getHeight(), 0.1f, 100.0f);
+        Matrix perpective = 
+        Matrix::getPerspectiveMatrix(45.0f, (float)window.getWidth() / (float)window.getHeight(), 0.1f, 100.0f);
         // Matrix::getOrthographicMatrix(
         //     -1.0f, 1.0f, 
         //     -1.0f * (float)window.getHeight() / (float)window.getWidth(), 

@@ -6,7 +6,7 @@
 #include <stdexcept>
 #include <iterator>
 
-namespace gren
+namespace grn
 {
     class Shader
     {

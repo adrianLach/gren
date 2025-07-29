@@ -3,7 +3,7 @@
 #include <string>
 #include <chrono>
 
-namespace gren
+namespace grn
 {
     class Logger
     {

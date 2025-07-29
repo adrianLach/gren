@@ -1,7 +1,7 @@
 #pragma once
 #include <cmath>
 
-namespace gren
+namespace grn
 {
 
     struct Vector
@@ -70,4 +70,4 @@ namespace gren
 
     };
 
-} // namespace gren
+} // namespace grn

@@ -1,31 +1,31 @@
-#include "gren/texture.h"
-#include "gren/logger.hpp"
+#include "grn/texture.h"
+#include "grn/logger.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "libs/stb/stb_image.h"
 
 #include <GL/glew.h>
 
-gren::Texture::Texture() : m_ID(0), m_width(0), m_height(0), m_channelCount(0)
+grn::Texture::Texture() : m_ID(0), m_width(0), m_height(0), m_channelCount(0)
 {
 }
 
-gren::Texture::~Texture()
+grn::Texture::~Texture()
 {
     glDeleteTextures(1, &m_ID);
 }
 
-void gren::Texture::loadFromFile(const std::string& filePath)
+void grn::Texture::loadFromFile(const std::string& filePath)
 {
     loadTextureFromFile(filePath);
 }
 
-void gren::Texture::bind() const
+void grn::Texture::bind() const
 {
     glBindTexture(GL_TEXTURE_2D, m_ID);
 }
 
-void gren::Texture::loadTextureFromFile(const std::string &filePath)
+void grn::Texture::loadTextureFromFile(const std::string &filePath)
 {
     stbi_set_flip_vertically_on_load(true);
 
@@ -54,6 +54,6 @@ void gren::Texture::loadTextureFromFile(const std::string &filePath)
     }
     else
     {
-        gren::Logger::error("Texture failed to load at path: " + filePath);
+        grn::Logger::error("Texture failed to load at path: " + filePath);
     }
 }

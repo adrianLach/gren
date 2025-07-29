@@ -3,7 +3,7 @@
 #include <GL/glew.h>
 #include <string>
 
-namespace gren
+namespace grn
 {
     class Texture
     {

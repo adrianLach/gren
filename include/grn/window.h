@@ -6,7 +6,7 @@
 // Forward declarations to avoid including GLFW in header
 struct GLFWwindow;
 
-namespace gren {
+namespace grn {
 
 class Window {
 public:
@@ -54,4 +54,4 @@ private:
     void cleanup();
 };
 
-} // namespace gren
+} // namespace grn

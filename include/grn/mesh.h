@@ -4,16 +4,10 @@
 #include <sstream>
 #include <vector>
 #include <array>
-#include "logger.hpp"
+#include "logger.h"
 
-namespace gren
+namespace grn
 {
-
-    struct Mesh
-    {
-        GLuint VBO, VAO, EBO;
-        uint size;
-    };
 
     struct Vertex
     {
@@ -24,9 +18,18 @@ namespace gren
         float bitangent[3];
     };
 
+    // Type alias to ensure cross-platform compatibility
+    using float3 = std::array<float, 3>;
+
+    struct Mesh
+    {
+        GLuint VBO, VAO, EBO;
+        uint size;
+    };
+
     static Mesh loadFromFileOBJ(const std::string &filename)
     {
-        gren::Logger::debug("Loading OBJ file: " + filename);
+        grn::Logger::debug("Loading OBJ file: " + filename);
         Mesh mesh;
         glGenVertexArrays(1, &mesh.VAO);
         glGenBuffers(1, &mesh.VBO);
@@ -39,7 +42,7 @@ namespace gren
         std::ifstream file(filename);
         if (!file.is_open())
         {
-            gren::Logger::error("Failed to open OBJ file: " + filename);
+            grn::Logger::error("Failed to open OBJ file: " + filename);
             throw std::runtime_error("Failed to open OBJ file: " + filename);
         }
 
@@ -185,8 +188,8 @@ namespace gren
         }
 
         // Calculate tangents and bitangents for each vertex
-        std::vector<float[3]> temp_tangents(vertices.size());
-        std::vector<float[3]> temp_bitangents(vertices.size());
+        std::vector<float3> temp_tangents(vertices.size());
+        std::vector<float3> temp_bitangents(vertices.size());
 
         for(size_t i = 0; i < indices.size(); i+=3)
         {
@@ -242,9 +245,9 @@ namespace gren
             v.bitangent[1] = v.normal[2] * v.tangent[0] - v.normal[0] * v.tangent[2];
             v.bitangent[2] = v.normal[0] * v.tangent[1] - v.normal[1] * v.tangent[0];
 
-            Logger::debug("Vertex " + std::to_string(i) +
-                " Tangent: [" + std::to_string(v.tangent[0]) + ", " + std::to_string(v.tangent[1]) + ", " + std::to_string(v.tangent[2]) + "]" +
-                " Bitangent: [" + std::to_string(v.bitangent[0]) + ", " + std::to_string(v.bitangent[1]) + ", " + std::to_string(v.bitangent[2]) + "]");
+            // Logger::debug("Vertex " + std::to_string(i) +
+            //     " Tangent: [" + std::to_string(v.tangent[0]) + ", " + std::to_string(v.tangent[1]) + ", " + std::to_string(v.tangent[2]) + "]" +
+            //     " Bitangent: [" + std::to_string(v.bitangent[0]) + ", " + std::to_string(v.bitangent[1]) + ", " + std::to_string(v.bitangent[2]) + "]");
         }
 
         mesh.size = indices.size();
@@ -275,7 +278,7 @@ namespace gren
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindVertexArray(0);
 
-        gren::Logger::debug("Finished creating mesh from OBJ file: " + filename);
+        grn::Logger::debug("Finished creating mesh from OBJ file: " + filename);
         return mesh;
     }
 
