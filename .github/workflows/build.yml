@@ -12,7 +12,7 @@ jobs:
     
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest]
         build_type: [Debug, Release]
     
     steps:
@@ -29,27 +29,9 @@ jobs:
       run: |
         brew install cmake glew glfw
     
-    - name: Install dependencies (Windows)
-      if: matrix.os == 'windows-latest'
-      run: |
-        choco install cmake
-        # For Windows, we'll use vcpkg to install graphics libraries
-        git clone https://github.com/Microsoft/vcpkg.git
-        cd vcpkg
-        ./bootstrap-vcpkg.bat
-        ./vcpkg integrate install
-        ./vcpkg install glew:x64-windows glfw3:x64-windows
-    
     - name: Configure CMake (Ubuntu/macOS)
       if: matrix.os != 'windows-latest'
       run: cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-    
-    - name: Configure CMake (Windows)
-      if: matrix.os == 'windows-latest'
-      run: |
-        $vcpkgPath = "$(Get-Location)/vcpkg/scripts/buildsystems/vcpkg.cmake"
-        cmake -B build -DCMAKE_TOOLCHAIN_FILE="$vcpkgPath" -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-      shell: pwsh
     
     - name: Build
       run: cmake --build build --config ${{ matrix.build_type }}
@@ -61,13 +43,4 @@ jobs:
         name: engine-${{ matrix.os }}-${{ matrix.build_type }}
         path: |
           build/engine
-          build/res/
-    
-    - name: Upload artifacts (Windows)
-      if: matrix.os == 'windows-latest'
-      uses: actions/upload-artifact@v4
-      with:
-        name: engine-${{ matrix.os }}-${{ matrix.build_type }}
-        path: |
-          build/${{ matrix.build_type }}/engine.exe
           build/res/
