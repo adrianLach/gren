@@ -33,7 +33,7 @@ Window::Window(int width, int height, const std::string& title)
     glfwWindowHint(GLFW_SAMPLES, 4);
 
     // Create window
-    m_window = glfwCreateWindow(width, height, title.c_str(), glfwGetPrimaryMonitor(), NULL);
+    m_window = glfwCreateWindow(width, height, title.c_str(), NULL, NULL);
     if (!m_window) {
         cleanup();
         throw std::runtime_error("Failed to create GLFW window");
