@@ -17,7 +17,7 @@ int main()
 {
 
     Logger::log("Starting OpenGL Triangle Example");
-    Window window(2560, 1600, "OpenGL Triangle");
+    Window window(2560 / 4, 1600 / 4, "OpenGL Triangle");
     window.makeContextCurrent();
 
     Mesh mesh = loadFromFileOBJ("res/ball.obj");
