@@ -1,30 +1,36 @@
 #version 330 core
-out vec4 FragColor;
+layout (location = 0) out vec4 gPosition;
+layout (location = 1) out vec4 gColor;
+layout (location = 2) out vec4 gTangent;
+layout (location = 3) out vec4 gBitangent;
+layout (location = 4) out vec4 gNormal;
 
 in VS_OUT
 {
     vec3 FragPos;
     vec2 TexCoords;
-    vec3 TangentLightPos;
-    vec3 TangentViewPos;
-    vec3 TangentFragPos;
+
+    vec3 T, N, B; // Tangent, Normal, Bitangent
 }
 fs_in;
 
 uniform sampler2D diffuseMap;
 uniform sampler2D normalMap;
-uniform sampler2D aoMap;
 uniform sampler2D heightMap;
+uniform sampler2D roughnessMap;
+
+uniform vec3 lightPos;
+uniform vec3 viewPos;
 
 vec2 ParallaxMapping(vec2 texCoords, vec3 viewDir)
 { 
 
     // scale factor for height map
-    float heightScale = 0.125; // adjust this value to control the parallax
+    float heightScale = 0.25; // adjust this value to control the parallax
 
     // number of depth layers
     const float minLayers = 8;
-    const float maxLayers = 128;
+    const float maxLayers = 32;
     float numLayers = mix(maxLayers, minLayers, max(dot(vec3(0.0, 0.0, 1.0), viewDir), 0.0));
 
     // calculate the size of each layer
@@ -65,34 +71,24 @@ vec2 ParallaxMapping(vec2 texCoords, vec3 viewDir)
 
 void main()
 {
-    vec3 viewDir = normalize(fs_in.TangentViewPos - fs_in.TangentFragPos);
+    mat3 TBN = transpose(mat3(fs_in.T, fs_in.B, fs_in.N));
+
+    vec3 TangentViewPos  = TBN * viewPos;
+    vec3 TangentFragPos  = TBN * fs_in.FragPos;
+
+    vec3 viewDir = normalize(TangentViewPos - TangentFragPos);
 
     vec2 texCoords = ParallaxMapping(fs_in.TexCoords / 1.0,  viewDir);
 
-    // if(texCoords.x > 1.0 || texCoords.y > 1.0 || texCoords.x < 0.0 || texCoords.y < 0.0)
-    //     discard;
-
-    // obtain normal from normal map in range [0,1]
     vec3 normal = texture(normalMap, texCoords).rgb;
-    // transform normal vector to range [-1,1]
     normal = normalize(normal * 2.0 - 1.0);  // this normal is in tangent space
    
-    // get diffuse color
     vec3 color = texture(diffuseMap, texCoords).rgb;
-    // ambient
-    vec3 ambient =  0.1 * color;
-    // diffuse
-    vec3 lightDir = normalize(fs_in.TangentLightPos - fs_in.TangentFragPos);
-    float diff = max(dot(lightDir, normal), 0.0);
-    vec3 diffuse = diff * color;
 
-    // specular
-    vec3 reflectDir = reflect(-lightDir, normal);
-    vec3 halfwayDir = normalize(lightDir + viewDir);  
-    float spec = pow(max(dot(normal, halfwayDir), 0.0), 32.0);
+    gPosition = vec4(fs_in.FragPos, 1.0);
+    gColor = vec4(color, 1.0);
+    gTangent = vec4(fs_in.T, 1.0);
+    gBitangent = vec4(fs_in.B, 1.0);
+    gNormal = vec4(normal, 1.0);
 
-    vec3 specular = vec3(0.2) * spec;
-    FragColor = vec4(ambient + diffuse + specular, 1.0);
-    // FragColor = vec4(normal * 0.5 + 0.5, 1.0); // for debugging normal map
-    // FragColor = vec4(texture(diffuseMap, texCoords).rgb, 1.0); 
 }

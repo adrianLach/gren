@@ -6,11 +6,14 @@
         {
             "label": "Build and Run",
             "type": "shell",
-            "command": "cmake --build . --config Debug && ./engine",
+            "command": "rm -fr CMakeFiles && cmake . && cmake --build . --config Debug && ./engine -d",
             "problemMatcher": [
                 {
                     "owner": "cpp",
-                    "fileLocation": ["relative", "build"],
+                    "fileLocation": [
+                        "relative",
+                        "build"
+                    ],
                     "pattern": {
                         "regexp": "^\\s*([^:]+):(\\d+):(\\d+):\\s*(.*)$",
                         "file": 1,

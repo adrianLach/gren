@@ -55,12 +55,12 @@ namespace grn
             return projection;
         }
 
-        static Matrix getViewMatrix(const Vector &position, const Vector &target, const Vector &up)
+        static Matrix getViewMatrix(const Vector3f &position, const Vector3f &target, const Vector3f &up)
         {
             Matrix view;
-            Vector zAxis = (position - target).normalize();
-            Vector xAxis = up.cross(zAxis).normalize();
-            Vector yAxis = zAxis.cross(xAxis);
+            Vector3f zAxis = (position - target).normalize();
+            Vector3f xAxis = up.cross(zAxis).normalize();
+            Vector3f yAxis = zAxis.cross(xAxis);
 
             float data[16];
 
@@ -86,7 +86,7 @@ namespace grn
             return view;
         }
 
-        static Matrix getModelMatrix(const Vector &position, const Vector &rotation, const Vector &scale)
+        static Matrix getModelMatrix(const Vector3f &position, const Vector3f &rotation, const Vector3f &scale)
         {
             Matrix model;
             float cosX = cosf(rotation.x);

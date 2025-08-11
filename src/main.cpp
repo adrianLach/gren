@@ -5,34 +5,61 @@
 #include <grn/shader.h>
 #include <grn/logger.h>
 #include <grn/matrix.h>
-#include <grn/mesh.h>
 #include <grn/texture.h>
 #include <grn/vector.h>
 #include <thread>
 #include <chrono>
+#include <grn/entity.h>
+#include <grn/render.h>
+
+#define checkError(a)                                              \
+    do                                                             \
+    {                                                              \
+        a;                                                         \
+        GLenum err = glGetError();                                 \
+        if (err != GL_NO_ERROR)                                    \
+        {                                                          \
+            Logger::error("OpenGL error: " + std::to_string(err)); \
+            break;                                                 \
+        }                                                          \
+    } while (false);
 
 using namespace grn;
 
-int main()
+int main(int argc, char *argv[])
 {
+    // Process command line arguments
+    for (int i = 1; i < argc; i++)
+    {
+        std::string arg = argv[i];
+        // Example: check for specific arguments
+        if (arg == "--help" || arg == "-h")
+        {
+            std::cout << "Usage: " << argv[0] << " [options]\n";
+            std::cout << "Options:\n";
+            std::cout << "  --help, -h     Show this help message\n";
+            return 0;
+        }
+        if (arg == "--debug" || arg == "-d")
+        {
+            Logger::setDebugEnabled(true);
+            Logger::log("Debug mode enabled");
+        }
+    }
 
-    Logger::log("Starting OpenGL Triangle Example");
-    Window window(2560 / 4, 1600 / 4, "OpenGL Triangle");
+    Window window(800, 450, "Rouge Like");
     window.makeContextCurrent();
 
     Mesh mesh = loadFromFileOBJ("res/ball.obj");
+    Mesh screenMesh = getScreenPlane();
 
     Logger::log("OpenGL resources initialized");
 
     Logger::log("Compiling shaders");
     Shader shader = Shader::loadFromFile("res/shaders/shader.vert", "res/shaders/shader.frag");
+    Shader screenShader = Shader::loadFromFile("res/shaders/screen.vert", "res/shaders/screen.frag");
 
     // Get uniform locations once and store them
-    GLint viewLoc = glGetUniformLocation(shader.getProgram(), "view");
-    GLint projLoc = glGetUniformLocation(shader.getProgram(), "projection");
-    GLint modelLoc = glGetUniformLocation(shader.getProgram(), "model");
-    GLint texLoc = glGetUniformLocation(shader.getProgram(), "diffuseMap");
-    GLint normalLoc = glGetUniformLocation(shader.getProgram(), "normalMap");
     GLint colorLoc = glGetUniformLocation(shader.getProgram(), "color");
     GLint lightPosLoc = glGetUniformLocation(shader.getProgram(), "lightPos");
 
@@ -45,53 +72,19 @@ int main()
     Texture height;
     height.loadFromFile("res/rock/height.png");
 
-    window.setKeyCallback([](int key, int scancode, int action, int mods)
-                          {
-        if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
-            Logger::log("Escape key pressed, closing window");
-            glfwSetWindowShouldClose(glfwGetCurrentContext(), true);
-        } });
+    window.setCallbacks();
 
-    window.setResizeCallback([&window](int width, int height)
-                             { 
-                                if (width > 0 && height > 0) {
-                                   glViewport(0, 0, width, height);
-                                   window.setSize(width, height);
-                                   Logger::log("Window resized to: " + std::to_string(width) + "x" + std::to_string(height));
-                                }
-                             });
-
-    auto toRadians = [](float degrees) -> float {
+    auto toRadians = [](float degrees) -> float
+    {
         return degrees * (3.14159265358979323846f / 180.0f);
     };
 
-    Vector position(0.0f, 0.0f, 0.0f);
-    Vector rotation(0.0f, 0.0f, 0.0f);
-    Vector scale(1.0f, 1.0f, 1.0f);
-
-    struct Camera
-    {
-        Vector position;
-        Vector rotation;
-        Camera() : position(0.0f, 0.0f, 0.0f), rotation(0.0f, 0.0f, 0.0f) {}
-    };
-
-    Camera camera;
-
-    camera.position = Vector(0.0f, 0.0f, 1.5f);
-
-    glViewport(0, 0, window.getWidth(), window.getHeight());
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
-    // Frame limiting configuration
-    const bool USE_FRAME_LIMITER = false; // Set to true to enable manual frame limiting
-    const double TARGET_FPS = 144.0; // Target framerate when frame limiter is enabled
-    const double TARGET_FRAME_TIME = 1.0 / TARGET_FPS;
 
     double lastTime = glfwGetTime();
     double deltaTime = 0.0;
@@ -101,12 +94,60 @@ int main()
     double fpsUpdateInterval = 1.0; // Update FPS every second
     double lastFpsUpdate = lastTime;
 
+    int toggleState = 0;
+    std::string toggleStates[] = {
+        "Position",
+        "Color",
+        "Tangent",
+        "Bitangent",
+        "Normal",
+        "Diffuse",
+        "Specular",
+        // "Depth",
+        // "Combined",
+    };
+
+    Entity entity;
+    entity.position = Vector3f(0.0f, 0.0f, 0.0f);
+    entity.rotation = Vector3f(0.0f, 0.0f, 0.0f);
+    entity.scale = Vector3f(1.0f, 1.0f, 1.0f);
+
+    entity.addComponent(new MeshComponent(mesh));
+    entity.addComponent(new MaterialComponent(texture, normal, height));
+
+    Camera camera(Vector3f(0.0f, 0.0f, -2.0f), Vector3f(0.0f, 0.0f, 0.0f), Vector3f(1.0f, 1.0f, 1.0f));
+
+    unsigned int scale = 100;
+    FramebufferDeferred framebuffer(Vector2i(16 * scale, 9 * scale));
+    EntityRenderer *renderer = new EntityRenderer(framebuffer);
+
     Logger::log("Entering main loop");
     while (!window.shouldClose())
     {
+
+        entity.update(deltaTime);
+        entity.rotation.y += toRadians(3.0f) * deltaTime; // Rotate the entity for demonstration
+        entity.rotation.x += toRadians(1.5f) * deltaTime; // Rotate the entity for demonstration
+
         currentTime = glfwGetTime();
         deltaTime = currentTime - lastTime;
         lastTime = currentTime;
+
+        if (window.getInput().KeyInput.getKeyDown(GLFW_KEY_ESCAPE))
+        {
+            Logger::debug("Escape key pressed, closing window");
+            window.setShouldClose(true);
+        }
+
+        if (window.getInput().KeyInput.getKeyDown(GLFW_KEY_TAB))
+        {
+            toggleState++;
+            if (toggleState >= sizeof(toggleStates) / sizeof(toggleStates[0]) + 1)
+            {
+                toggleState = 0;
+            }
+            Logger::debug("Toggled render state to: " + toggleStates[toggleState]);
+        }
 
         frames++;
         if (currentTime - lastFpsUpdate >= fpsUpdateInterval)
@@ -114,73 +155,70 @@ int main()
             fps = frames / (currentTime - lastFpsUpdate);
             lastFpsUpdate = currentTime;
             frames = 0;
-            Logger::log("FPS: " + std::to_string(fps));
         }
+
+        camera.position.x += window.getInput().getPlayerNavigation().x * deltaTime * 2.0f;
+        camera.position.z += window.getInput().getPlayerNavigation().y * deltaTime * 2.0f;
+        camera.setProjectionMatrix(Matrix::getPerspectiveMatrix(toRadians(60.0f), (float)window.getWidth() / (float)window.getHeight(), 0.001f, 10000.0f));
+
+        // pitch and roll
+
+        camera.rotation.x += window.getInput().mouseInput.getMouseDelta().y * deltaTime * 0.1f;
+        camera.rotation.y += window.getInput().mouseInput.getMouseDelta().x * deltaTime * 0.1f;
 
         window.setTitle("OpenGL Triangle - FPS: " + std::to_string(fps) + " - Calulated: " + std::to_string(1.0 / deltaTime) + " - Delta Time: " + std::to_string(deltaTime));
 
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        rotation.y = toRadians(20.0f * sin(currentTime / 2.0f) - 20.0f);
-        rotation.x = toRadians(20.0f * cos(currentTime / 2.0f));
-
-        Matrix perpective = 
-        Matrix::getPerspectiveMatrix(45.0f, (float)window.getWidth() / (float)window.getHeight(), 0.1f, 100.0f);
-        // Matrix::getOrthographicMatrix(
-        //     -1.0f, 1.0f, 
-        //     -1.0f * (float)window.getHeight() / (float)window.getWidth(), 
-        //     1.0f * (float)window.getHeight() / (float)window.getWidth(), 
-        //     0.1f, 100.0f
-        // );
-        Matrix view = Matrix::getModelMatrix(-camera.position, -camera.rotation, Vector(1.0f, 1.0f, 1.0f));
-        Matrix model = Matrix::getModelMatrix(position, rotation, scale);
+        // renderer->m_framebuffer.size = Vector2i(window.getWidth(), window.getHeight());
+        renderer->setup();
 
         glUseProgram(shader.getProgram());
-        glUniformMatrix4fv(viewLoc, 1, GL_FALSE, view);
-        glUniformMatrix4fv(projLoc, 1, GL_FALSE, perpective);
-        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, model);
-
-        glUniform3fv(glGetUniformLocation(shader.getProgram(), "viewPos"), 1, -camera.position);
-
-        glActiveTexture(GL_TEXTURE0);
-        texture.bind();
-        glUniform1i(texLoc, 0);
-
-        glActiveTexture(GL_TEXTURE1);
-        normal.bind();
-        glUniform1i(normalLoc, 1);
-
-        glActiveTexture(GL_TEXTURE2);
-        height.bind();
-        glUniform1i(glGetUniformLocation(shader.getProgram(), "heightMap"), 2);
 
         glUniform4f(colorLoc, 0.5f, 0.5f, 0.5f, 1.0f);
-        //light Pos
         glUniform3f(lightPosLoc, 30.0f, 30.0f, 30.0f);
 
-        glBindVertexArray(mesh.VAO);
-        glDrawElements(GL_TRIANGLES, mesh.size, GL_UNSIGNED_INT, 0);
+        renderer->render(entity, camera, shader);
+        renderer->cleanup();
+
+        checkError(glViewport(0, 0, window.getWidth(), window.getHeight()));
+        glClearColor(0.5f, 0.3f, 0.4f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glDisable(GL_DEPTH_TEST);
+
+        glUseProgram(screenShader.getProgram());
+        glUniform1i(glGetUniformLocation(screenShader.getProgram(), "textureMode"), toggleState);
+
+        glUniform3f(glGetUniformLocation(screenShader.getProgram(), "lightPos"), 30.0f, 30.0f, 30.0f);
+        glUniform3f(glGetUniformLocation(screenShader.getProgram(), "viewPos"), camera.position.x, camera.position.y, camera.position.z);
+
+        glActiveTexture(GL_TEXTURE1);
+        framebuffer.position.bind();
+        glUniform1i(glGetUniformLocation(screenShader.getProgram(), "positionMap"), 1);
+
+        glActiveTexture(GL_TEXTURE2);
+        framebuffer.color.bind();
+        glUniform1i(glGetUniformLocation(screenShader.getProgram(), "colorMap"), 2);
+
+        glActiveTexture(GL_TEXTURE3);
+        framebuffer.tangent.bind();
+        glUniform1i(glGetUniformLocation(screenShader.getProgram(), "tangentMap"), 3);
+
+        glActiveTexture(GL_TEXTURE4);
+        framebuffer.bitangent.bind();
+        glUniform1i(glGetUniformLocation(screenShader.getProgram(), "bitangentMap"), 4);
+
+        glActiveTexture(GL_TEXTURE5);
+        framebuffer.normal.bind();
+        glUniform1i(glGetUniformLocation(screenShader.getProgram(), "normalMap"), 5);
+
+        glActiveTexture(GL_TEXTURE6);
+        framebuffer.depth.bind();
+        glUniform1i(glGetUniformLocation(screenShader.getProgram(), "depthMap"), 6);
+
+        glBindVertexArray(screenMesh.VAO);
+        glDrawElements(GL_TRIANGLES, screenMesh.size, GL_UNSIGNED_INT, 0);
 
         window.swapBuffers();
         window.pollEvents();
-
-        // Manual frame limiting (if enabled)
-        if (USE_FRAME_LIMITER) {
-            double frameEndTime = glfwGetTime();
-            double frameTime = frameEndTime - currentTime;
-            
-            if (frameTime < TARGET_FRAME_TIME) {
-                double sleepTime = TARGET_FRAME_TIME - frameTime;
-                // Use busy wait for more precise timing (alternative: std::this_thread::sleep_for)
-                double targetTime = frameEndTime + sleepTime;
-                while (glfwGetTime() < targetTime) {
-                    // Busy wait - more CPU intensive but more precise
-                    // For less CPU usage, replace with:
-                    // std::this_thread::sleep_for(std::chrono::duration<double>(sleepTime * 0.9));
-                }
-            }
-        }
     }
 
     Logger::log("Exiting main loop");

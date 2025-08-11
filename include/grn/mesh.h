@@ -1,3 +1,4 @@
+#pragma once
 #include <GL/glew.h>
 #include <string>
 #include <fstream>
@@ -26,6 +27,49 @@ namespace grn
         GLuint VBO, VAO, EBO;
         uint size;
     };
+
+    static Mesh getScreenPlane()
+    {
+        Mesh mesh;
+        mesh.size = 6;
+
+        glGenVertexArrays(1, &mesh.VAO);
+        glGenBuffers(1, &mesh.VBO);
+        glGenBuffers(1, &mesh.EBO);
+
+        glBindVertexArray(mesh.VAO);
+
+        // Define vertices for a full-screen quad
+        float vertices[] = {
+            // positions 2floats      // texture coords 2 floats
+            -1.0f, -1.0f, 0.0f, 0.0f, // Bottom-left
+            1.0f, -1.0f, 1.0f, 0.0f,  // Bottom-right
+            1.0f, 1.0f, 1.0f, 1.0f,   // Top-right
+            -1.0f, -1.0f, 0.0f, 0.0f, // Bottom-left
+            1.0f, 1.0f, 1.0f, 1.0f,   // Top-right
+            -1.0f, 1.0f, 0.0f, 1.0f   // Top-left
+        };
+
+        glBindBuffer(GL_ARRAY_BUFFER, mesh.VBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.EBO);
+        unsigned int indices[] = {// Note that we start from 0!
+                                  0, 1, 2,
+                                  3, 4, 5};
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+        // Position attribute
+        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * (2 + 2), (void *)nullptr);
+        glEnableVertexAttribArray(0);
+        // Texture coord attribute
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(float) * (2 + 2), (void *)(sizeof(float) * 2));
+        glEnableVertexAttribArray(1);
+
+        glBindVertexArray(0); // Unbind VAO
+
+        return mesh;
+    }
 
     static Mesh loadFromFileOBJ(const std::string &filename)
     {
@@ -124,12 +168,12 @@ namespace grn
 
                 // Parse face vertices - handle different OBJ formats: v, v/vt, v/vt/vn, v//vn
                 std::vector<std::array<unsigned int, 3>> faceVertices; // [vertex_idx, texcoord_idx, normal_idx]
-                
+
                 std::string vertexStr;
                 while (iss >> vertexStr)
                 {
                     std::array<unsigned int, 3> vertex = {0, 0, 0}; // default to 0 for missing components
-                    
+
                     size_t firstSlash = vertexStr.find('/');
                     if (firstSlash == std::string::npos)
                     {
@@ -140,7 +184,7 @@ namespace grn
                     {
                         // Extract vertex index
                         vertex[0] = std::stoi(vertexStr.substr(0, firstSlash));
-                        
+
                         size_t secondSlash = vertexStr.find('/', firstSlash + 1);
                         if (secondSlash == std::string::npos)
                         {
@@ -191,16 +235,16 @@ namespace grn
         std::vector<float3> temp_tangents(vertices.size());
         std::vector<float3> temp_bitangents(vertices.size());
 
-        for(size_t i = 0; i < indices.size(); i+=3)
+        for (size_t i = 0; i < indices.size(); i += 3)
         {
             Vertex &v0 = vertices[indices[i]];
-            Vertex &v1 = vertices[indices[i+1]];
-            Vertex &v2 = vertices[indices[i+2]];
+            Vertex &v1 = vertices[indices[i + 1]];
+            Vertex &v2 = vertices[indices[i + 2]];
 
-            float deltaPos1[3] = { v1.position[0] - v0.position[0], v1.position[1] - v0.position[1], v1.position[2] - v0.position[2] };
-            float deltaPos2[3] = { v2.position[0] - v0.position[0], v2.position[1] - v0.position[1], v2.position[2] - v0.position[2] };
-            float deltaUV1[2] = { v1.texCoord[0] - v0.texCoord[0], v1.texCoord[1] - v0.texCoord[1] };
-            float deltaUV2[2] = { v2.texCoord[0] - v0.texCoord[0], v2.texCoord[1] - v0.texCoord[1] };
+            float deltaPos1[3] = {v1.position[0] - v0.position[0], v1.position[1] - v0.position[1], v1.position[2] - v0.position[2]};
+            float deltaPos2[3] = {v2.position[0] - v0.position[0], v2.position[1] - v0.position[1], v2.position[2] - v0.position[2]};
+            float deltaUV1[2] = {v1.texCoord[0] - v0.texCoord[0], v1.texCoord[1] - v0.texCoord[1]};
+            float deltaUV2[2] = {v2.texCoord[0] - v0.texCoord[0], v2.texCoord[1] - v0.texCoord[1]};
 
             float f = 1.0f / (deltaUV1[0] * deltaUV2[1] - deltaUV2[0] * deltaUV1[1]);
 
@@ -214,28 +258,30 @@ namespace grn
             bitangent[1] = f * (-deltaUV2[0] * deltaPos1[1] + deltaUV1[0] * deltaPos2[1]);
             bitangent[2] = f * (-deltaUV2[0] * deltaPos1[2] + deltaUV1[0] * deltaPos2[2]);
 
-            for(int j=0; j<3; ++j) {
+            for (int j = 0; j < 3; ++j)
+            {
                 temp_tangents[indices[i]][j] += tangent[j];
-                temp_tangents[indices[i+1]][j] += tangent[j];
-                temp_tangents[indices[i+2]][j] += tangent[j];
+                temp_tangents[indices[i + 1]][j] += tangent[j];
+                temp_tangents[indices[i + 2]][j] += tangent[j];
                 temp_bitangents[indices[i]][j] += bitangent[j];
-                temp_bitangents[indices[i+1]][j] += bitangent[j];
-                temp_bitangents[indices[i+2]][j] += bitangent[j];
+                temp_bitangents[indices[i + 1]][j] += bitangent[j];
+                temp_bitangents[indices[i + 2]][j] += bitangent[j];
             }
         }
 
-        for(size_t i = 0; i < vertices.size(); ++i) {
-            Vertex& v = vertices[i];
-            
+        for (size_t i = 0; i < vertices.size(); ++i)
+        {
+            Vertex &v = vertices[i];
+
             // Gram-Schmidt orthogonalize
             float n_dot_t = v.normal[0] * temp_tangents[i][0] + v.normal[1] * temp_tangents[i][1] + v.normal[2] * temp_tangents[i][2];
-            
+
             float t_res[3];
             t_res[0] = temp_tangents[i][0] - n_dot_t * v.normal[0];
             t_res[1] = temp_tangents[i][1] - n_dot_t * v.normal[1];
             t_res[2] = temp_tangents[i][2] - n_dot_t * v.normal[2];
 
-            float t_len = sqrt(t_res[0]*t_res[0] + t_res[1]*t_res[1] + t_res[2]*t_res[2]);
+            float t_len = sqrt(t_res[0] * t_res[0] + t_res[1] * t_res[1] + t_res[2] * t_res[2]);
             v.tangent[0] = t_res[0] / t_len;
             v.tangent[1] = t_res[1] / t_len;
             v.tangent[2] = t_res[2] / t_len;
