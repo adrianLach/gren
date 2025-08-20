@@ -7,22 +7,22 @@
             "label": "Build and Run",
             "type": "shell",
             "command": "rm -fr CMakeFiles && cmake . && cmake --build . --config Debug && ./engine -d",
-            "problemMatcher": [
-                {
-                    "owner": "cpp",
-                    "fileLocation": [
-                        "relative",
-                        "build"
-                    ],
-                    "pattern": {
-                        "regexp": "^\\s*([^:]+):(\\d+):(\\d+):\\s*(.*)$",
-                        "file": 1,
-                        "line": 2,
-                        "column": 3,
-                        "message": 4
-                    }
-                }
-            ],
+            // "problemMatcher": [
+            //     {
+            //         "owner": "cpp",
+            //         "fileLocation": [
+            //             "relative",
+            //             "build"
+            //         ],
+            //         "pattern": {
+            //             "regexp": "^\\s*([^:]+):(\\d+):(\\d+):\\s*(.*)$",
+            //             "file": 1,
+            //             "line": 2,
+            //             "column": 3,
+            //             "message": 4
+            //         }
+            //     }
+            // ],
             "group": {
                 "kind": "build",
                 "isDefault": true

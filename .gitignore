@@ -4,3 +4,4 @@ engine
 Makefile
 CMakeFiles/
 res/
+build/
