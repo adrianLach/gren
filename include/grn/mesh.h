@@ -70,8 +70,7 @@ namespace grn
 
         return mesh;
     }
-
-    static Mesh loadFromFileOBJ(const std::string &filename)
+    static Mesh loadFromFileOBJ(const std::string &filename, bool invertNormals)
     {
         grn::Logger::debug("Loading OBJ file: " + filename);
         Mesh mesh;
@@ -328,4 +327,8 @@ namespace grn
         return mesh;
     }
 
+    static Mesh loadFromFileOBJ(const std::string &filename)
+    {
+        return loadFromFileOBJ(filename, false);
+    }
 }

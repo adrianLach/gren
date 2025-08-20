@@ -71,6 +71,7 @@ vec2 ParallaxMapping(vec2 texCoords, vec3 viewDir)
 
 void main()
 {
+
     mat3 TBN = transpose(mat3(fs_in.T, fs_in.B, fs_in.N));
 
     vec3 TangentViewPos  = TBN * viewPos;

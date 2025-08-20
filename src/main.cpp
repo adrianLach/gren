@@ -28,6 +28,9 @@ using namespace grn;
 
 int main(int argc, char *argv[])
 {
+
+    bool debug = false;
+
     // Process command line arguments
     for (int i = 1; i < argc; i++)
     {
@@ -41,16 +44,19 @@ int main(int argc, char *argv[])
             return 0;
         }
         if (arg == "--debug" || arg == "-d")
-        {
-            Logger::setDebugEnabled(true);
-            Logger::log("Debug mode enabled");
-        }
+            debug = true;
+    }
+
+    if (debug)
+    {
+        Logger::setDebugEnabled(true);
+        Logger::log("Debug mode enabled");
     }
 
     Window window(800, 450, "Rouge Like");
     window.makeContextCurrent();
 
-    Mesh mesh = loadFromFileOBJ("res/ball.obj");
+    Mesh mesh = loadFromFileOBJ("res/ico.obj");
     Mesh screenMesh = getScreenPlane();
 
     Logger::log("OpenGL resources initialized");
@@ -94,7 +100,7 @@ int main(int argc, char *argv[])
     double fpsUpdateInterval = 1.0; // Update FPS every second
     double lastFpsUpdate = lastTime;
 
-    int toggleState = 0;
+    int toggleState = 7;
     std::string toggleStates[] = {
         "Position",
         "Color",
@@ -107,6 +113,9 @@ int main(int argc, char *argv[])
         // "Combined",
     };
 
+    float fov = 60.0f;
+    Camera camera(Vector3f(0.0f, 0.0f, 2.0f), Vector3f(0.0f, 0.0f, 0.0f), Vector3f(1.0f, 1.0f, 1.0f));
+
     Entity entity;
     entity.position = Vector3f(0.0f, 0.0f, 0.0f);
     entity.rotation = Vector3f(0.0f, 0.0f, 0.0f);
@@ -114,8 +123,6 @@ int main(int argc, char *argv[])
 
     entity.addComponent(new MeshComponent(mesh));
     entity.addComponent(new MaterialComponent(texture, normal, height));
-
-    Camera camera(Vector3f(0.0f, 0.0f, -2.0f), Vector3f(0.0f, 0.0f, 0.0f), Vector3f(1.0f, 1.0f, 1.0f));
 
     unsigned int scale = 100;
     FramebufferDeferred framebuffer(Vector2i(16 * scale, 9 * scale));
@@ -126,8 +133,6 @@ int main(int argc, char *argv[])
     {
 
         entity.update(deltaTime);
-        entity.rotation.y += toRadians(3.0f) * deltaTime; // Rotate the entity for demonstration
-        entity.rotation.x += toRadians(1.5f) * deltaTime; // Rotate the entity for demonstration
 
         currentTime = glfwGetTime();
         deltaTime = currentTime - lastTime;
@@ -159,12 +164,12 @@ int main(int argc, char *argv[])
 
         camera.position.x += window.getInput().getPlayerNavigation().x * deltaTime * 2.0f;
         camera.position.z += window.getInput().getPlayerNavigation().y * deltaTime * 2.0f;
-        camera.setProjectionMatrix(Matrix::getPerspectiveMatrix(toRadians(60.0f), (float)window.getWidth() / (float)window.getHeight(), 0.001f, 10000.0f));
+        camera.setProjectionMatrix(Matrix::getPerspectiveMatrix(toRadians(fov), (float)window.getWidth() / (float)window.getHeight(), 0.001f, 10000.0f));
 
         // pitch and roll
 
-        camera.rotation.x += window.getInput().mouseInput.getMouseDelta().y * deltaTime * 0.1f;
-        camera.rotation.y += window.getInput().mouseInput.getMouseDelta().x * deltaTime * 0.1f;
+        entity.rotation.y += window.getInput().mouseInput.getMouseDelta().x * deltaTime * 0.1f;
+        entity.rotation.x += window.getInput().mouseInput.getMouseDelta().y * deltaTime * 0.1f;
 
         window.setTitle("OpenGL Triangle - FPS: " + std::to_string(fps) + " - Calulated: " + std::to_string(1.0 / deltaTime) + " - Delta Time: " + std::to_string(deltaTime));
 
